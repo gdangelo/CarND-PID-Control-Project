@@ -34,7 +34,7 @@ void run_car(PID pid, double cte, uWS::WebSocket<uWS::SERVER> ws) {
   double steer_value = pid.TotalError();
 
   // DEBUG
-  std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
+  //std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
 
   json msgJson;
   msgJson["steering_angle"] = steer_value;
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
   uWS::Hub h;
 
   PID pid;
-  Twiddle tw(atoi(argv[1]));
+  Twiddle tw(atoi(argv[1]), 0.0);
 
   // Initialize the pid variable.
   double Kp = 0.0;
@@ -81,23 +81,64 @@ int main(int argc, char *argv[])
           // Use parameters optimization (twiddle)
           if(tw.is_used) {
 
-            // STEP 1: Initialize twiddle (first run)
-            if(!tw.is_initialized) {
-              if(tw.dist_count < tw.max_dist){
-                run_car(pid, cte, ws);
+            // Keep the car going
+            tw.dist_count += 1;
+            // Update error
+            tw.error += cte*cte;
+
+            if(tw.DistanceReached()) {
+
+              // STEP 1: Initialize twiddle (first run)
+              if(!tw.is_initialized) {
+                tw.Init(pid);
+                std::cout << "Initialization is done." << std::endl;
               }
+              // STEP 2: Update PID parameters
               else {
-                // Initialization is done
-                tw.is_initialized = true;
-                tw.best_err = cte;
-                // Reset
-                tw.dist_count = 0;
-                reset_simulator(ws);
+                // New best error found
+                if(tw.error < tw.best_error) {
+                  tw.best_error = tw.error;
+                  tw.dp[tw.param_index].value *= 1.1;
+
+                  std::cout << "Best PID params: "
+                            << pid.Kp << "(Kp), "
+                            << pid.Ki << "(Ki), "
+                            << pid.Kd << "(Kd)"
+                            << endl;
+                }
+                else {
+                  // Try going backward if forward did not succeed
+                  if(tw.dp[tw.param_index].direction == DIRECTION::FORWARD) {
+                    std::cout << "Go backward" << std::endl;
+                    pid.Kp -= 2*tw.dp[tw.param_index].value;
+                    tw.dp[tw.param_index].direction = DIRECTION::BACKWARD;
+                  }
+                  // In case of both failed (fwd and bwd), reset PID parameter K
+                  // and decrease the update parameter dp
+                  else {
+                    std::cout << "Reset param" << std::endl;
+                    pid.Kp += tw.dp[tw.param_index].value;
+                    tw.dp[tw.param_index].value *= 0.9;
+                    tw.dp[tw.param_index].direction = DIRECTION::FORWARD;
+                  }
+                }
               }
-            }
-            // STEP 2: Update PID parameters
-            else {
-              
+
+              // Reset distance and current run error
+              tw.dist_count = 0;
+              tw.error = 0;
+              ++tw.it;
+
+              std::cout << "Sum of dp: " << tw.SumDP() << std::endl;
+
+              std::cout << "PID params: "
+                        << pid.Kp << "(Kp), "
+                        << pid.Ki << "(Ki), "
+                        << pid.Kd << "(Kd)"
+                        << endl;
+
+              // Reset the simulator
+              reset_simulator(ws);
             }
           }
 
