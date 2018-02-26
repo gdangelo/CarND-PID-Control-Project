@@ -20,7 +20,7 @@ void PID::Init(double Kp, double Ki, double Kd) {
 
 void PID::UpdateError(double cte) {
   d_error = cte - p_error; // differential: current cte - previous cte
-  p_error = cte; // propertionnal: current cte
+  p_error = cte; // proportionnal: current cte
   i_error += cte; // integral: sum of cte
 }
 

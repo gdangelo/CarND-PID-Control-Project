@@ -2,6 +2,7 @@
 #include <iostream>
 #include "json.hpp"
 #include "PID.h"
+#include "Twiddle.h"
 #include <math.h>
 
 // for convenience
@@ -28,18 +29,40 @@ std::string hasData(std::string s) {
   return "";
 }
 
+void run_car(PID pid, double cte, uWS::WebSocket<uWS::SERVER> ws) {
+  pid.UpdateError(cte);
+  double steer_value = pid.TotalError();
+
+  // DEBUG
+  std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
+
+  json msgJson;
+  msgJson["steering_angle"] = steer_value;
+  msgJson["throttle"] = 0.3;
+  auto msg = "42[\"steer\"," + msgJson.dump() + "]";
+  std::cout << msg << std::endl;
+  ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+}
+
+void reset_simulator(uWS::WebSocket<uWS::SERVER> ws) {
+  std::string msg = "42[\"reset\",{}]";
+  ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+}
+
 int main(int argc, char *argv[])
 {
   uWS::Hub h;
 
   PID pid;
-  double Kp = -atof(argv[1]);
-  double Ki = -atof(argv[2]);
-  double Kd = -atof(argv[3]);
+  Twiddle tw(atoi(argv[1]));
+
   // Initialize the pid variable.
+  double Kp = 0.0;
+  double Ki = 0.0;
+  double Kd = 0.0;
   pid.Init(Kp, Ki, Kd);
 
-  h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+  h.onMessage([&pid, &tw](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -52,28 +75,33 @@ int main(int argc, char *argv[])
         if (event == "telemetry") {
           // j[1] is the data JSON object
           double cte = std::stod(j[1]["cte"].get<std::string>());
-          double speed = std::stod(j[1]["speed"].get<std::string>());
-          double angle = std::stod(j[1]["steering_angle"].get<std::string>());
-          double steer_value;
-          /*
-          * TODO: Calcuate steering value here, remember the steering value is
-          * [-1, 1].
-          * NOTE: Feel free to play around with the throttle and speed. Maybe use
-          * another PID controller to control the speed!
-          */
+          //double speed = std::stod(j[1]["speed"].get<std::string>());
+          //double angle = std::stod(j[1]["steering_angle"].get<std::string>());
 
-          pid.UpdateError(cte);
-          steer_value = pid.TotalError();
+          // Use parameters optimization (twiddle)
+          if(tw.is_used) {
 
-          // DEBUG
-          std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
+            // STEP 1: Initialize twiddle (first run)
+            if(!tw.is_initialized) {
+              if(tw.dist_count < tw.max_dist){
+                run_car(pid, cte, ws);
+              }
+              else {
+                // Initialization is done
+                tw.is_initialized = true;
+                tw.best_err = cte;
+                // Reset
+                tw.dist_count = 0;
+                reset_simulator(ws);
+              }
+            }
+            // STEP 2: Update PID parameters
+            else {
+              
+            }
+          }
 
-          json msgJson;
-          msgJson["steering_angle"] = steer_value;
-          msgJson["throttle"] = 0.3;
-          auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-          std::cout << msg << std::endl;
-          ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+          run_car(pid, cte, ws);
         }
       } else {
         // Manual driving
