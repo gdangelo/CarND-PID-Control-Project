@@ -99,9 +99,7 @@ int main(int argc, char *argv[])
               else {
                 // New best error found
                 if(tw.error < tw.best_error) {
-                  tw.best_error = tw.error;
-                  tw.dp[tw.param_index].value *= 1.1;
-                  tw.dp[tw.param_index].direction = DIRECTION::FORWARD;
+                  tw.UpdateBestError();
 
                   std::cout << "Best error: " << tw.best_error << std::endl;
 

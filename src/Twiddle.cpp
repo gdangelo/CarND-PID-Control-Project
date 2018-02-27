@@ -26,15 +26,24 @@ Twiddle::~Twiddle() {}
 void Twiddle::Init(PID &pid) {
   // Set best error
   best_error = error;
-
   // Use first PID parameter for update
   pid.Kp += dp[param_index].value;
-
+  // Initialization is done!
   is_initialized = true;
+}
+
+void Twiddle::UpdateBestError() {
+  // Set current error as the best one
+  best_error = error;
+  // Increase the PID parameter change
+  dp[param_index].value *= 1.1;
+  // Reset direction to forward
+  dp[param_index].direction = DIRECTION::FORWARD;
 }
 
 void Twiddle::GoBackward(PID &pid) {
   // Change direction (fwd --> bwd) for parameter optimization
+  // by substracting the change 2 times
   switch(param_index) {
     case 0: pid.Kp -= 2*dp[param_index].value; break;
     case 1: pid.Ki -= 2*dp[param_index].value; break;
@@ -44,10 +53,12 @@ void Twiddle::GoBackward(PID &pid) {
 }
 
 void Twiddle::ChangePIDIndex() {
+  // Need 'modulo' operator because the simulator is running indefinitely
   param_index = (param_index + 1) % 3;
 }
 
 void Twiddle::UpdatePIDParameter(PID &pid) {
+  // Add change to current PID parameter
   switch(param_index) {
     case 0: pid.Kp += dp[param_index].value; break;
     case 1: pid.Ki += dp[param_index].value; break;
@@ -57,7 +68,9 @@ void Twiddle::UpdatePIDParameter(PID &pid) {
 
 void Twiddle::ResetPIDParameter(PID &pid) {
   UpdatePIDParameter(pid);
+  // Decrease the PID parameter change
   dp[param_index].value *= 0.9;
+  // Reset direction to forward
   dp[param_index].direction = DIRECTION::FORWARD;
 }
 

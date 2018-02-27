@@ -61,6 +61,8 @@ public:
 
   void Init(PID &pid);
 
+  void UpdateBestError();
+
   void GoBackward(PID &pid);
 
   void ChangePIDIndex();
