@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
 
                   // Change parameter index and update value
                   tw.ChangePIDIndex();
-                  tw.UpdatePIDValue(pid);
+                  tw.UpdatePIDParameter(pid);
                 }
                 else {
                   // Try going backward if forward did not succeed
@@ -121,29 +121,12 @@ int main(int argc, char *argv[])
                     std::cout << "Go backward..." << std::endl;
                     tw.GoBackward(pid);
                   }
-                  // In case of both failed (fwd and bwd), reset PID parameter K
-                  // and decrease the update parameter dp
+                  // In case of both failed (fwd and bwd), reset PID parameter,
+                  // decrease the update parameter dp, and switch PID parameter
                   else {
-                    switch(tw.param_index) {
-                      case 0:
-                        std::cout << "Reset parameter Kp." << std::endl;
-                        pid.Kp += tw.dp[tw.param_index].value;
-                        break;
-                      case 1:
-                        std::cout << "Reset parameter Ki." << std::endl;
-                        pid.Ki += tw.dp[tw.param_index].value;
-                        break;
-                      case 2:
-                        std::cout << "Reset parameter Kd." << std::endl;
-                        pid.Kd += tw.dp[tw.param_index].value;
-                        break;
-                    }
-                    tw.dp[tw.param_index].value *= 0.9;
-                    tw.dp[tw.param_index].direction = DIRECTION::FORWARD;
-
-                    // Change parameter index and update value
+                    tw.ResetPIDParameter(pid);
                     tw.ChangePIDIndex();
-                    tw.UpdatePIDValue(pid);
+                    tw.UpdatePIDParameter(pid);
                   }
                 }
               }

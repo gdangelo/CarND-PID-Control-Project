@@ -47,12 +47,18 @@ void Twiddle::ChangePIDIndex() {
   param_index = (param_index + 1) % 3;
 }
 
-void Twiddle::UpdatePIDValue(PID &pid) {
+void Twiddle::UpdatePIDParameter(PID &pid) {
   switch(param_index) {
     case 0: pid.Kp += dp[param_index].value; break;
     case 1: pid.Ki += dp[param_index].value; break;
     case 2: pid.Kd += dp[param_index].value; break;
   }
+}
+
+void Twiddle::ResetPIDParameter(PID &pid) {
+  UpdatePIDParameter(pid);
+  dp[param_index].value *= 0.9;
+  dp[param_index].direction = DIRECTION::FORWARD;
 }
 
 bool Twiddle::DistanceReached() {
