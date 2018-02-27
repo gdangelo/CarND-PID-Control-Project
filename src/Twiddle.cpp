@@ -43,6 +43,18 @@ void Twiddle::GoBackward(PID &pid) {
   dp[param_index].direction = DIRECTION::BACKWARD;
 }
 
+void Twiddle::ChangePIDIndex() {
+  param_index = (param_index + 1) % 3;
+}
+
+void Twiddle::UpdatePIDValue(PID &pid) {
+  switch(param_index) {
+    case 0: pid.Kp += dp[param_index].value; break;
+    case 1: pid.Ki += dp[param_index].value; break;
+    case 2: pid.Kd += dp[param_index].value; break;
+  }
+}
+
 bool Twiddle::DistanceReached() {
   return dist_count >= max_dist;
 }

@@ -111,22 +111,9 @@ int main(int argc, char *argv[])
                             << pid.Kd << "(Kd)"
                             << endl;
 
-                  // Change parameter index
-                  tw.param_index = (tw.param_index + 1) % 3;
-                  switch(tw.param_index) {
-                    case 0:
-                      std::cout << "Kp optimization begins..." << std::endl;
-                      pid.Kp += tw.dp[tw.param_index].value;
-                      break;
-                    case 1:
-                      std::cout << "Ki optimization begins..." << std::endl;
-                      pid.Ki += tw.dp[tw.param_index].value;
-                      break;
-                    case 2:
-                      std::cout << "Kd optimization begins..." << std::endl;
-                      pid.Kd += tw.dp[tw.param_index].value;
-                      break;
-                  }
+                  // Change parameter index and update value
+                  tw.ChangePIDIndex();
+                  tw.UpdatePIDValue(pid);
                 }
                 else {
                   // Try going backward if forward did not succeed
@@ -154,22 +141,9 @@ int main(int argc, char *argv[])
                     tw.dp[tw.param_index].value *= 0.9;
                     tw.dp[tw.param_index].direction = DIRECTION::FORWARD;
 
-                    // Change parameter index
-                    tw.param_index = (tw.param_index + 1) % 3;
-                    switch(tw.param_index) {
-                      case 0:
-                        std::cout << "Kp optimization begins..." << std::endl;
-                        pid.Kp += tw.dp[tw.param_index].value;
-                        break;
-                      case 1:
-                        std::cout << "Ki optimization begins..." << std::endl;
-                        pid.Ki += tw.dp[tw.param_index].value;
-                        break;
-                      case 2:
-                        std::cout << "Kd optimization begins..." << std::endl;
-                        pid.Kd += tw.dp[tw.param_index].value;
-                        break;
-                    }
+                    // Change parameter index and update value
+                    tw.ChangePIDIndex();
+                    tw.UpdatePIDValue(pid);
                   }
                 }
               }
