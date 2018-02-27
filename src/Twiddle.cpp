@@ -19,13 +19,11 @@ Twiddle::Twiddle(int max_dist, double tolerance) {
   this->dist_count = 0;
 
   this->error = 0.0;
-
-  this->it = 0;
 }
 
 Twiddle::~Twiddle() {}
 
-void Twiddle::Init(PID pid) {
+void Twiddle::Init(PID &pid) {
   // Set best error
   best_error = error;
 
@@ -37,13 +35,4 @@ void Twiddle::Init(PID pid) {
 
 bool Twiddle::DistanceReached() {
   return dist_count >= max_dist;
-}
-
-double Twiddle::SumDP() {
-  double sum = 0;
-  for(unsigned int i = 0; i < dp.size(); ++i) {
-    sum += dp[i].value;
-  }
-
-  return sum;
 }

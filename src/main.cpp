@@ -31,7 +31,7 @@ std::string hasData(std::string s) {
 
 void run_car(PID pid, double cte, uWS::WebSocket<uWS::SERVER> ws) {
   pid.UpdateError(cte);
-  double steer_value = pid.TotalError();
+  double steer_value = -pid.TotalError();
 
   // DEBUG
   //std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
@@ -40,7 +40,7 @@ void run_car(PID pid, double cte, uWS::WebSocket<uWS::SERVER> ws) {
   msgJson["steering_angle"] = steer_value;
   msgJson["throttle"] = 0.3;
   auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-  std::cout << msg << std::endl;
+  //std::cout << msg << std::endl;
   ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 }
 
@@ -92,6 +92,8 @@ int main(int argc, char *argv[])
               if(!tw.is_initialized) {
                 tw.Init(pid);
                 std::cout << "Initialization is done." << std::endl;
+                std::cout << "Best error: " << tw.best_error << std::endl;
+                std::cout << "Kp optimization begins..." << std::endl;
               }
               // STEP 2: Update PID parameters
               else {
@@ -99,27 +101,88 @@ int main(int argc, char *argv[])
                 if(tw.error < tw.best_error) {
                   tw.best_error = tw.error;
                   tw.dp[tw.param_index].value *= 1.1;
+                  tw.dp[tw.param_index].direction = DIRECTION::FORWARD;
+
+                  std::cout << "Best error: " << tw.best_error << std::endl;
 
                   std::cout << "Best PID params: "
                             << pid.Kp << "(Kp), "
                             << pid.Ki << "(Ki), "
                             << pid.Kd << "(Kd)"
                             << endl;
+
+                  // Change parameter index
+                  tw.param_index = (tw.param_index + 1) % 3;
+                  switch(tw.param_index) {
+                    case 0:
+                      std::cout << "Kp optimization begins..." << std::endl;
+                      pid.Kp += tw.dp[tw.param_index].value;
+                      break;
+                    case 1:
+                      std::cout << "Ki optimization begins..." << std::endl;
+                      pid.Ki += tw.dp[tw.param_index].value;
+                      break;
+                    case 2:
+                      std::cout << "Kd optimization begins..." << std::endl;
+                      pid.Kd += tw.dp[tw.param_index].value;
+                      break;
+                  }
                 }
                 else {
                   // Try going backward if forward did not succeed
                   if(tw.dp[tw.param_index].direction == DIRECTION::FORWARD) {
-                    std::cout << "Go backward" << std::endl;
-                    pid.Kp -= 2*tw.dp[tw.param_index].value;
-                    tw.dp[tw.param_index].direction = DIRECTION::BACKWARD;
+                    std::cout << "Go backward..." << std::endl;
+                    switch(tw.param_index) {
+                      case 0:
+                        pid.Kp -= 2*tw.dp[tw.param_index].value;
+                        tw.dp[tw.param_index].direction = DIRECTION::BACKWARD;
+                        break;
+                      case 1:
+                        pid.Ki -= 2*tw.dp[tw.param_index].value;
+                        tw.dp[tw.param_index].direction = DIRECTION::BACKWARD;
+                        break;
+                      case 2:
+                        pid.Kd -= 2*tw.dp[tw.param_index].value;
+                        tw.dp[tw.param_index].direction = DIRECTION::BACKWARD;
+                        break;
+                    }
                   }
                   // In case of both failed (fwd and bwd), reset PID parameter K
                   // and decrease the update parameter dp
                   else {
-                    std::cout << "Reset param" << std::endl;
-                    pid.Kp += tw.dp[tw.param_index].value;
+                    switch(tw.param_index) {
+                      case 0:
+                        std::cout << "Reset parameter Kp." << std::endl;
+                        pid.Kp += tw.dp[tw.param_index].value;
+                        break;
+                      case 1:
+                        std::cout << "Reset parameter Ki." << std::endl;
+                        pid.Ki += tw.dp[tw.param_index].value;
+                        break;
+                      case 2:
+                        std::cout << "Reset parameter Kd." << std::endl;
+                        pid.Kd += tw.dp[tw.param_index].value;
+                        break;
+                    }
                     tw.dp[tw.param_index].value *= 0.9;
                     tw.dp[tw.param_index].direction = DIRECTION::FORWARD;
+
+                    // Change parameter index
+                    tw.param_index = (tw.param_index + 1) % 3;
+                    switch(tw.param_index) {
+                      case 0:
+                        std::cout << "Kp optimization begins..." << std::endl;
+                        pid.Kp += tw.dp[tw.param_index].value;
+                        break;
+                      case 1:
+                        std::cout << "Ki optimization begins..." << std::endl;
+                        pid.Ki += tw.dp[tw.param_index].value;
+                        break;
+                      case 2:
+                        std::cout << "Kd optimization begins..." << std::endl;
+                        pid.Kd += tw.dp[tw.param_index].value;
+                        break;
+                    }
                   }
                 }
               }
@@ -127,15 +190,6 @@ int main(int argc, char *argv[])
               // Reset distance and current run error
               tw.dist_count = 0;
               tw.error = 0;
-              ++tw.it;
-
-              std::cout << "Sum of dp: " << tw.SumDP() << std::endl;
-
-              std::cout << "PID params: "
-                        << pid.Kp << "(Kp), "
-                        << pid.Ki << "(Ki), "
-                        << pid.Kd << "(Kd)"
-                        << endl;
 
               // Reset the simulator
               reset_simulator(ws);
@@ -168,7 +222,7 @@ int main(int argc, char *argv[])
   });
 
   h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
-    std::cout << "Connected!!!" << std::endl;
+    std::cout << "Connected!!!\n" << std::endl;
   });
 
   h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code, char *message, size_t length) {

@@ -49,9 +49,6 @@ public:
   ///* values used to update each PID parameters in Twiddle algorithm
   std::vector<update> dp;
 
-  ///* iteration number
-  int it;
-
   /*
   * Constructor
   */
@@ -62,11 +59,9 @@ public:
   */
   virtual ~Twiddle();
 
-  void Init(PID pid);
+  void Init(PID &pid);
 
   bool DistanceReached();
-
-  double SumDP();
 };
 
 #endif /* TWIDDLE_H */
