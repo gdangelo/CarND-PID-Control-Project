@@ -132,20 +132,7 @@ int main(int argc, char *argv[])
                   // Try going backward if forward did not succeed
                   if(tw.dp[tw.param_index].direction == DIRECTION::FORWARD) {
                     std::cout << "Go backward..." << std::endl;
-                    switch(tw.param_index) {
-                      case 0:
-                        pid.Kp -= 2*tw.dp[tw.param_index].value;
-                        tw.dp[tw.param_index].direction = DIRECTION::BACKWARD;
-                        break;
-                      case 1:
-                        pid.Ki -= 2*tw.dp[tw.param_index].value;
-                        tw.dp[tw.param_index].direction = DIRECTION::BACKWARD;
-                        break;
-                      case 2:
-                        pid.Kd -= 2*tw.dp[tw.param_index].value;
-                        tw.dp[tw.param_index].direction = DIRECTION::BACKWARD;
-                        break;
-                    }
+                    tw.GoBackward(pid);
                   }
                   // In case of both failed (fwd and bwd), reset PID parameter K
                   // and decrease the update parameter dp

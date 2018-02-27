@@ -33,6 +33,16 @@ void Twiddle::Init(PID &pid) {
   is_initialized = true;
 }
 
+void Twiddle::GoBackward(PID &pid) {
+  // Change direction (fwd --> bwd) for parameter optimization
+  switch(param_index) {
+    case 0: pid.Kp -= 2*dp[param_index].value; break;
+    case 1: pid.Ki -= 2*dp[param_index].value; break;
+    case 2: pid.Kd -= 2*dp[param_index].value; break;
+  }
+  dp[param_index].direction = DIRECTION::BACKWARD;
+}
+
 bool Twiddle::DistanceReached() {
   return dist_count >= max_dist;
 }

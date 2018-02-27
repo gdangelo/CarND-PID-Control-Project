@@ -62,6 +62,8 @@ public:
   void Init(PID &pid);
 
   bool DistanceReached();
+
+  void GoBackward(PID &pid);
 };
 
 #endif /* TWIDDLE_H */
