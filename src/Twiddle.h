@@ -31,6 +31,9 @@ public:
   ///* distance already run on the current loop
   int dist_count;
 
+  ///* best distance run
+  int best_dist;
+
   ///* maximum distance to run each time the simulator is run
   int max_dist;
 
@@ -75,6 +78,8 @@ public:
   void ResetPIDParameter(PID &pid);
 
   bool DistanceReached();
+
+  double SumDp();
 
   void PrintStepState(PID &pid);
 

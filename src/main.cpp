@@ -83,6 +83,11 @@ int main(int argc, char *argv[])
           //double speed = std::stod(j[1]["speed"].get<std::string>());
           //double angle = std::stod(j[1]["steering_angle"].get<std::string>());
 
+          if (tw.SumDp() <= 1E-10 && tw.is_used) {
+            // Stop Twiddle algorithm, and just run the car
+            tw.is_used = false;
+          }
+
           // Use parameters optimization (twiddle)
           if (tw.is_used) {
 
@@ -90,11 +95,11 @@ int main(int argc, char *argv[])
             tw.dist_count += 1;
             // Update error
             tw.error += cte*cte;
-            tw.avg_error = tw.error / (tw.dist_count*tw.dist_count);
+            tw.avg_error = tw.error / tw.dist_count;
 
             // Stop current simulation loop when distance is reached
             // or the car is going off the road
-            if (tw.dist_count > 50 && (tw.DistanceReached() || std::fabs(cte) >= 3.0)) {
+            if (tw.dist_count > 50 && (tw.DistanceReached() || std::fabs(cte) >= 4.0)) {
 
               tw.PrintStepState(pid);
 
@@ -105,7 +110,7 @@ int main(int argc, char *argv[])
               }
               // Handle PID parameter changes
               else {
-                if (tw.avg_error < tw.best_error) {
+                if (tw.avg_error < tw.best_error && tw.dist_count >= tw.best_dist) {
                   // New best error found
                   tw.UpdateBestError();
                   // Change parameter index

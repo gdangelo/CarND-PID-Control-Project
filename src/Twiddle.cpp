@@ -9,6 +9,7 @@ Twiddle::Twiddle(int max_dist, PID &pid) {
   this->param_index = 0;
   this->max_dist = max_dist;
   this->dist_count = 0;
+  this->best_dist = 0;
   this->error = 0.0;
   this->avg_error = 0.0;
   this->it = 0;
@@ -25,6 +26,8 @@ Twiddle::~Twiddle() {}
 void Twiddle::Init(PID &pid) {
   // Set best error
   best_error = avg_error;
+  // Set best dist
+  best_dist = dist_count;
   // Initialization is done!
   is_initialized = true;
 }
@@ -32,6 +35,8 @@ void Twiddle::Init(PID &pid) {
 void Twiddle::UpdateBestError() {
   // Set current error as the best one
   best_error = avg_error;
+  // Set current distance count as the best one
+  best_dist = dist_count;
   // Increase the PID parameter change
   dp[param_index].value *= 1.1;
   // Reset direction to forward
@@ -75,6 +80,14 @@ bool Twiddle::DistanceReached() {
   return dist_count >= max_dist;
 }
 
+double Twiddle::SumDp() {
+  double sum = 0.0;
+  for (int i = 0; i < nb_params; i++) {
+    sum += dp[i].value;
+  }
+  return sum;
+}
+
 void Twiddle::PrintStepState(PID &pid) {
   std::cout << "p: ("
             << pid.Kp << ", "
@@ -86,12 +99,15 @@ void Twiddle::PrintStepState(PID &pid) {
             << dp[1].value << ", "
             << dp[2].value << "), ";
 
-  std::cout << "avg err: " << avg_error << std::endl;
+  std::cout << "avg err: " << avg_error << ", ";
+
+  std::cout << "dist: " << dist_count << std::endl;
 }
 
 void Twiddle::PrintIterationState(PID &pid) {
   std::cout << "Iteration " << it++
             << ", best error: " << best_error
+            << ", best dist: " << best_dist
             << " --> "
             << pid.Kp << "(Kp), "
             << pid.Ki << "(Ki), "
