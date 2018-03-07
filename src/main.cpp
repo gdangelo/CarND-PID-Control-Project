@@ -29,18 +29,22 @@ std::string hasData(std::string s) {
   return "";
 }
 
-void run_car(PID pid, double cte, uWS::WebSocket<uWS::SERVER> ws) {
+void run_car(Twiddle tw, PID &pid, double cte, uWS::WebSocket<uWS::SERVER> ws) {
+  // Predict steering angle from errors
   pid.UpdateError(cte);
   double steer_value = -pid.TotalError();
-
-  // DEBUG
-  //std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
 
   json msgJson;
   msgJson["steering_angle"] = steer_value;
   msgJson["throttle"] = 0.3;
   auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-  //std::cout << msg << std::endl;
+
+  // Log info: only in running mode
+  if (!tw.is_used) {
+    std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
+    std::cout << msg << std::endl;
+  }
+
   ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 }
 
@@ -54,13 +58,14 @@ int main(int argc, char *argv[])
   uWS::Hub h;
 
   PID pid;
-  Twiddle tw(atoi(argv[1]), 0.0);
-
   // Initialize the pid variable.
-  double Kp = 0.0;
-  double Ki = 0.0;
-  double Kd = 0.0;
+  double Kp = atof(argv[1]);
+  double Ki = atof(argv[2]);
+  double Kd = atof(argv[3]);
   pid.Init(Kp, Ki, Kd);
+
+  // Initialize the twiddle variable.
+  Twiddle tw(atoi(argv[4]), pid);
 
   h.onMessage([&pid, &tw](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -79,44 +84,36 @@ int main(int argc, char *argv[])
           //double angle = std::stod(j[1]["steering_angle"].get<std::string>());
 
           // Use parameters optimization (twiddle)
-          if(tw.is_used) {
+          if (tw.is_used) {
 
             // Keep the car going
             tw.dist_count += 1;
             // Update error
             tw.error += cte*cte;
+            tw.avg_error = tw.error / (tw.dist_count*tw.dist_count);
 
-            if(tw.DistanceReached()) {
+            // Stop current simulation loop when distance is reached
+            // or the car is going off the road
+            if (tw.dist_count > 50 && (tw.DistanceReached() || std::fabs(cte) >= 3.0)) {
 
-              // STEP 1: Initialize twiddle (first run)
-              if(!tw.is_initialized) {
+              tw.PrintStepState(pid);
+
+              // Initialize twiddle (first run)
+              if (!tw.is_initialized) {
                 tw.Init(pid);
-                std::cout << "Initialization is done." << std::endl;
-                std::cout << "Best error: " << tw.best_error << std::endl;
-                std::cout << "Kp optimization begins..." << std::endl;
+                std::cout << "Initialization is done!" << std::endl;
               }
-              // STEP 2: Update PID parameters
+              // Handle PID parameter changes
               else {
-                // New best error found
-                if(tw.error < tw.best_error) {
+                if (tw.avg_error < tw.best_error) {
+                  // New best error found
                   tw.UpdateBestError();
-
-                  std::cout << "Best error: " << tw.best_error << std::endl;
-
-                  std::cout << "Best PID params: "
-                            << pid.Kp << "(Kp), "
-                            << pid.Ki << "(Ki), "
-                            << pid.Kd << "(Kd)"
-                            << endl;
-
-                  // Change parameter index and update value
+                  // Change parameter index
                   tw.ChangePIDIndex();
-                  tw.UpdatePIDParameter(pid);
                 }
                 else {
                   // Try going backward if forward did not succeed
-                  if(tw.dp[tw.param_index].direction == DIRECTION::FORWARD) {
-                    std::cout << "Go backward..." << std::endl;
+                  if (tw.dp[tw.param_index].direction == DIRECTION::FORWARD) {
                     tw.GoBackward(pid);
                   }
                   // In case of both failed (fwd and bwd), reset PID parameter,
@@ -124,21 +121,29 @@ int main(int argc, char *argv[])
                   else {
                     tw.ResetPIDParameter(pid);
                     tw.ChangePIDIndex();
-                    tw.UpdatePIDParameter(pid);
                   }
                 }
+              }
+
+              if (tw.dp[tw.param_index].direction == DIRECTION::FORWARD) {
+                // Log info
+                if (tw.param_index == 0) {
+                  tw.PrintIterationState(pid);
+                }
+                tw.UpdatePIDParameter(pid);
               }
 
               // Reset distance and current run error
               tw.dist_count = 0;
               tw.error = 0;
+              tw.avg_error = 0;
 
               // Reset the simulator
               reset_simulator(ws);
             }
           }
 
-          run_car(pid, cte, ws);
+          run_car(tw, pid, cte, ws);
         }
       } else {
         // Manual driving
@@ -163,8 +168,10 @@ int main(int argc, char *argv[])
     }
   });
 
-  h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
-    std::cout << "Connected!!!\n" << std::endl;
+  h.onConnection([&h, &tw](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
+    if (tw.it == 0) {
+      std::cout << "Connected!!!\n" << std::endl;
+    }
   });
 
   h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code, char *message, size_t length) {

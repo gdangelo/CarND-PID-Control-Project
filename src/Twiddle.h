@@ -11,7 +11,7 @@ enum DIRECTION {
   BACKWARD
 };
 
-struct update {
+struct dp_state {
   double value;
   DIRECTION direction;
 };
@@ -34,25 +34,28 @@ public:
   ///* maximum distance to run each time the simulator is run
   int max_dist;
 
-  ///* tolerance threshold
-  double tolerance;
-
   ///* best error
   double best_error;
 
-  ///* error on the current run
+  ///* total error on the current run
   double error;
+
+  ///* avg error on the current run
+  double avg_error;
 
   ///* index of the current parameters to optimize (p: 0, i: 1, d: 2)
   int param_index;
 
   ///* values used to update each PID parameters in Twiddle algorithm
-  std::vector<update> dp;
+  std::vector<dp_state> dp;
+
+  ///* iteration number
+  int it;
 
   /*
   * Constructor
   */
-  Twiddle(int max_dist, double tolerance);
+  Twiddle(int max_dist, PID &pid);
 
   /*
   * Destructor.
@@ -72,6 +75,10 @@ public:
   void ResetPIDParameter(PID &pid);
 
   bool DistanceReached();
+
+  void PrintStepState(PID &pid);
+
+  void PrintIterationState(PID &pid);
 };
 
 #endif /* TWIDDLE_H */

@@ -1,9 +1,5 @@
 #include "PID.h"
 
-/*
-* TODO: Complete the PID class.
-*/
-
 PID::PID() {}
 
 PID::~PID() {}

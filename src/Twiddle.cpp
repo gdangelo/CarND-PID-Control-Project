@@ -1,40 +1,37 @@
 #include "Twiddle.h"
 
-Twiddle::Twiddle(int max_dist, double tolerance) {
+#include <iostream>
+
+Twiddle::Twiddle(int max_dist, PID &pid) {
   this->is_used = true;
   this->is_initialized = false;
-
   this->nb_params = 3;
-
   this->param_index = 0;
-
-  for(unsigned int i = 0; i < this->nb_params; ++i) {
-    update temp = { 1.0, DIRECTION::FORWARD };
-    this->dp.push_back(temp);
-  }
-
-  this->tolerance = tolerance;
-
   this->max_dist = max_dist;
   this->dist_count = 0;
-
   this->error = 0.0;
+  this->avg_error = 0.0;
+  this->it = 0;
+
+  // Initialize dp parameters
+  for(unsigned int i = 0; i < this->nb_params; ++i) {
+    dp_state temp = { 1, DIRECTION::FORWARD };
+    this->dp.push_back(temp);
+  }
 }
 
 Twiddle::~Twiddle() {}
 
 void Twiddle::Init(PID &pid) {
   // Set best error
-  best_error = error;
-  // Use first PID parameter for update
-  pid.Kp += dp[param_index].value;
+  best_error = avg_error;
   // Initialization is done!
   is_initialized = true;
 }
 
 void Twiddle::UpdateBestError() {
   // Set current error as the best one
-  best_error = error;
+  best_error = avg_error;
   // Increase the PID parameter change
   dp[param_index].value *= 1.1;
   // Reset direction to forward
@@ -76,4 +73,28 @@ void Twiddle::ResetPIDParameter(PID &pid) {
 
 bool Twiddle::DistanceReached() {
   return dist_count >= max_dist;
+}
+
+void Twiddle::PrintStepState(PID &pid) {
+  std::cout << "p: ("
+            << pid.Kp << ", "
+            << pid.Ki << ", "
+            << pid.Kd << "), ";
+
+  std::cout << "dp: ("
+            << dp[0].value << ", "
+            << dp[1].value << ", "
+            << dp[2].value << "), ";
+
+  std::cout << "avg err: " << avg_error << std::endl;
+}
+
+void Twiddle::PrintIterationState(PID &pid) {
+  std::cout << "Iteration " << it++
+            << ", best error: " << best_error
+            << " --> "
+            << pid.Kp << "(Kp), "
+            << pid.Ki << "(Ki), "
+            << pid.Kd << "(Kd)\n"
+            << std::endl;
 }
