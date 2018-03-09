@@ -1,23 +1,28 @@
 #include "Twiddle.h"
 
 #include <iostream>
+#include <math.h>
 
-Twiddle::Twiddle(int max_dist, PID &pid) {
-  this->is_used = true;
+Twiddle::Twiddle(int max_dist) {
+  this->is_used = max_dist == -1 ? false : true;
   this->is_initialized = false;
-  this->nb_params = 3;
+  this->it = 0;
+  // Twiddle parameters
+  this->nb_params = 5;
   this->param_index = 0;
+  // Distance
   this->max_dist = max_dist;
   this->dist_count = 0;
   this->best_dist = 0;
+  // Error (~cte)
   this->error = 0.0;
   this->avg_error = 0.0;
-  this->it = 0;
+  this->best_error = INFINITY;
 
   // Initialize dp parameters
-  for(unsigned int i = 0; i < this->nb_params; ++i) {
-    dp_state temp = { 1, DIRECTION::FORWARD };
-    this->dp.push_back(temp);
+  for (int i = 0; i < this->nb_params; i++) {
+    dp_state init = { 1.0, DIRECTION::FORWARD };
+    this->dp.push_back(init);
   }
 }
 
@@ -56,7 +61,7 @@ void Twiddle::GoBackward(PID &pid) {
 
 void Twiddle::ChangePIDIndex() {
   // Need 'modulo' operator because the simulator is running indefinitely
-  param_index = (param_index + 1) % 3;
+  param_index = (param_index + 1) % nb_params;
 }
 
 void Twiddle::UpdatePIDParameter(PID &pid) {
@@ -107,7 +112,7 @@ void Twiddle::PrintStepState(PID &pid) {
 void Twiddle::PrintIterationState(PID &pid) {
   std::cout << "Iteration " << it++
             << ", best error: " << best_error
-            << ", best dist: " << best_dist
+            << ", best dist: "  << best_dist
             << " --> "
             << pid.Kp << "(Kp), "
             << pid.Ki << "(Ki), "

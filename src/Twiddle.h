@@ -58,7 +58,7 @@ public:
   /*
   * Constructor
   */
-  Twiddle(int max_dist, PID &pid);
+  Twiddle(int max_dist);
 
   /*
   * Destructor.

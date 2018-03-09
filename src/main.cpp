@@ -34,14 +34,16 @@ void run_car(Twiddle tw, PID &pid, double cte, uWS::WebSocket<uWS::SERVER> ws) {
   pid.UpdateError(cte);
   double steer_value = -pid.TotalError();
 
+  double throttle = 0.3;
+
   json msgJson;
   msgJson["steering_angle"] = steer_value;
-  msgJson["throttle"] = 0.3;
+  msgJson["throttle"] = throttle;
   auto msg = "42[\"steer\"," + msgJson.dump() + "]";
 
   // Log info: only in running mode
   if (!tw.is_used) {
-    std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
+    std::cout << "CTE: " << cte << " Steering Value: " << steer_value << " Throttle: " << throttle << std::endl;
     std::cout << msg << std::endl;
   }
 
@@ -58,14 +60,26 @@ int main(int argc, char *argv[])
   uWS::Hub h;
 
   PID pid;
-  // Initialize the pid variable.
-  double Kp = atof(argv[1]);
-  double Ki = atof(argv[2]);
-  double Kd = atof(argv[3]);
+  // Initialize the pid variable
+  double Kp = 0.0;
+  if (argc > 2) {
+    Kp = atof(argv[2]);
+  }
+  double Ki = 0.0;
+  if (argc > 3) {
+    Ki = atof(argv[3]);
+  }
+  double Kd = 0.0;
+  if (argc > 4) {
+    Kd = atof(argv[4]);
+  }
+
   pid.Init(Kp, Ki, Kd);
 
-  // Initialize the twiddle variable.
-  Twiddle tw(atoi(argv[4]), pid);
+  // Initialize the twiddle variable
+  // if -1 don't use Twiddle
+  Twiddle tw(atoi(argv[1]));
+
 
   h.onMessage([&pid, &tw](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -80,10 +94,10 @@ int main(int argc, char *argv[])
         if (event == "telemetry") {
           // j[1] is the data JSON object
           double cte = std::stod(j[1]["cte"].get<std::string>());
-          //double speed = std::stod(j[1]["speed"].get<std::string>());
+          double speed = std::stod(j[1]["speed"].get<std::string>());
           //double angle = std::stod(j[1]["steering_angle"].get<std::string>());
 
-          if (tw.SumDp() <= 1E-10 && tw.is_used) {
+          if (tw.is_used && tw.SumDp() <= 1E-10) {
             // Stop Twiddle algorithm, and just run the car
             tw.is_used = false;
           }
@@ -97,9 +111,11 @@ int main(int argc, char *argv[])
             tw.error += cte*cte;
             tw.avg_error = tw.error / tw.dist_count;
 
-            // Stop current simulation loop when distance is reached
-            // or the car is going off the road
-            if (tw.dist_count > 50 && (tw.DistanceReached() || std::fabs(cte) >= 4.0)) {
+            // Stop current simulation loop (after the first 50 iterations) when:
+            //  - distance is reached
+            //  - or the car is going off the road (early stopping)
+            //  - or the car doesn't move
+            if (tw.dist_count > 50 && (tw.DistanceReached() || std::fabs(cte) >= 4.0 || speed <= 1.0)) {
 
               tw.PrintStepState(pid);
 
@@ -110,7 +126,7 @@ int main(int argc, char *argv[])
               }
               // Handle PID parameter changes
               else {
-                if (tw.avg_error < tw.best_error && tw.dist_count >= tw.best_dist) {
+                if(tw.avg_error < tw.best_error && tw.dist_count >= tw.best_dist) {
                   // New best error found
                   tw.UpdateBestError();
                   // Change parameter index
@@ -138,7 +154,7 @@ int main(int argc, char *argv[])
                 tw.UpdatePIDParameter(pid);
               }
 
-              // Reset distance and current run error
+              // Reset distance, current run error
               tw.dist_count = 0;
               tw.error = 0;
               tw.avg_error = 0;
