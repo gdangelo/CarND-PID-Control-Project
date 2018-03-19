@@ -8,17 +8,18 @@
 
 ## Project Basics
 
-The goal of this project is to implement in C++ a PID controller to control the steering angle (although I used the value from this controller to also determine throttle) for driving a car around a virtual track using the [Udacity simulator](https://github.com/udacity/self-driving-car-sim/releases), as well as tuning each PID gain in order to calculate a steering angle that keeps the car on the track.
+The goal of this project is to implement in C++ a PID controller to control the steering angle for driving a car around a virtual track using the [Udacity simulator](https://github.com/udacity/self-driving-car-sim/releases), as well as tuning each PID gain in order to calculate a steering angle that keeps the car on the track.
 
 The simulator provides cross-track error (CTE) via websocket. The PID (proportional-integral-differential) controller give steering commands to drive the car reliably around the simulator track.
 
 **Project Steps**
-- Implement a PID Controller for steering the car (optional: controlling throttle as well)
+- Implement a PID Controller for steering the car
 - Optimize each PID gain to run the car smoothly around the track
 
 ---
 
 ## Results / Reflection
+
 A video of the simulated car driving around the track can be found [here]().
 
 ### Components of a PID controller
@@ -43,7 +44,9 @@ These gains can be tuned to run the car smoothly around the track.
 
 ### Finding the right gains
 
-The optimization algorithm called Twiddle has been used to automatically fine tune the PID gains. The car has been run for 150 iterations using Twiddle, with a constant throttle value (0.3), to finally obtain the corresponding results: **Kp: 0.30351, Ki: 0.00001, Kd: 2.66123**.
+The optimization algorithm called Twiddle has been used to automatically fine tune the PID gains. The car has been run for about 50 iterations using Twiddle, with a constant throttle value (0.3), to finally obtain the corresponding results: **Kp: 0.30351, Ki: 0.00001, Kd: 2.66123**.
+
+I've also done some tests to control throttle using the steering angle value as follow `throttle = (1 - abs(steering_angle)) * 0.5 + 0.3`. Gains (Kp, Ki, and Kd) obtained from running Twiddle again with the throttle didn't converge to a satisfying result. Furthermore, adding two more parameters (Ka, and Kb) to Twiddle to tune, such as `throttle = (1 - abs(steering_angle)) * Ka + Kb`, takes too long to run before having good results.
 
 ---
 
