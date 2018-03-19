@@ -16,11 +16,11 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 include_directories(/usr/local/opt/openssl/include)
 link_directories(/usr/local/opt/openssl/lib)
-link_directories(/usr/local/Cellar/libuv/1*/lib)
+link_directories(/usr/local/Cellar/libuv/1.19.1/lib)
 
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 
-add_executable(pid ${sources})
+add_executable(pid2 ${sources})
 
-target_link_libraries(pid z ssl uv uWS)
+target_link_libraries(pid2 z ssl uv uWS)
