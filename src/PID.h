@@ -18,6 +18,12 @@ public:
   double Kd;
 
   /*
+  * Output limits (steering values)
+  */
+  double min_output_limit = -1.0;
+  double max_output_limit = 1.0;
+
+  /*
   * Constructor
   */
   PID();

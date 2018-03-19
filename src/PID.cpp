@@ -15,11 +15,32 @@ void PID::Init(double Kp, double Ki, double Kd) {
 }
 
 void PID::UpdateError(double cte) {
-  d_error = cte - p_error; // differential: current cte - previous cte
-  p_error = cte; // proportionnal: current cte
-  i_error += cte; // integral: sum of cte
+  // differential: current cte - previous cte
+  d_error = cte - p_error;
+  // proportionnal: current cte
+  p_error = cte;
+  // integral: sum of cte
+  i_error += cte;
+
+  // Handle integral windup problem by setting output limits
+  if (i_error > max_output_limit) {
+    i_error = max_output_limit;
+  }
+  if (i_error < min_output_limit) {
+    i_error = min_output_limit;
+  }
 }
 
 double PID::TotalError() {
-  return Kp*p_error + Ki*i_error + Kd*d_error;
+  double total_error = Kp*p_error + Ki*i_error + Kd*d_error;
+
+  // Handle windup problem by setting output limits
+  if (total_error > max_output_limit) {
+    total_error = max_output_limit;
+  }
+  if (total_error < min_output_limit) {
+    total_error = min_output_limit;
+  }
+
+  return total_error;
 }
