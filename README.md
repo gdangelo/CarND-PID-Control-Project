@@ -18,9 +18,7 @@ The simulator provides cross-track error (CTE) via websocket. The PID (proportio
 
 ---
 
-## Results / Reflection
-
-A video of the simulated car driving around the track can be found [here]().
+## Discussion / Reflection
 
 ### Components of a PID controller
 
