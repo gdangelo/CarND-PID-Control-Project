@@ -6,13 +6,17 @@
 
 ![PID Controller](https://user-images.githubusercontent.com/4352286/37220909-147b8132-2396-11e8-9e0b-544d357cdb75.png)
 
-The goal of this project is to use a PID controller to control the steering angle (although I used the value from this controller to also determine throttle) for driving a car around a virtual track using the [Udacity simulator](https://github.com/udacity/self-driving-car-sim/releases), as well as tuning each PID gain in order to calculate a steering angle that keeps the car on the track.
+## Project Basics
+
+The goal of this project is to implement in C++ a PID controller to control the steering angle (although I used the value from this controller to also determine throttle) for driving a car around a virtual track using the [Udacity simulator](https://github.com/udacity/self-driving-car-sim/releases), as well as tuning each PID gain in order to calculate a steering angle that keeps the car on the track.
 
 The simulator provides cross-track error (CTE) via websocket. The PID (proportional-integral-differential) controller give steering commands to drive the car reliably around the simulator track.
 
 **Project Steps**
 - Implement a PID Controller for steering the car (optional: controlling throttle as well)
 - Optimize each PID gain to run the car smoothly around the track
+
+---
 
 ## Results / Reflection
 A video of the simulated car driving around the track can be found [here]().
